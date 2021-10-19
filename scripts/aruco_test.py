@@ -43,7 +43,7 @@ class Arucofind(hm.HelloNode):
 		rospy.sleep(2)
 		self.move_to_pose({'wrist_extension': 0.01})
 		rospy.sleep(2)
-		self.move_to_pose({'joint_lift':0.65, 'joint_wrist_yaw':math.pi/2 })
+		self.move_to_pose({'joint_lift':0.65, 'joint_wrist_yaw':math.pi })
 		rospy.sleep(2)
 
 	def scan_for_aruco(self):
@@ -61,7 +61,7 @@ class Arucofind(hm.HelloNode):
 
 		while not fridge_aruco_found:
 			current_pan = pose.get("joint_head_pan")
-			print(current_pan)
+			#print(current_pan)
 			
 			if current_pan > 2.4:
 				sweeping_clockwise = True
@@ -88,41 +88,82 @@ class Arucofind(hm.HelloNode):
 						if marker.id == 27:
 							return
 
+	def check_angle_threshold(self, angle):
+		if abs(angle)>math.pi:
+			if angle>math.pi:
+				final_ang = -(2*math.pi-angle)
+			else:
+				final_ang = (2*math.pi+angle)
+		else:
+			final_ang = angle
+
+		return final_ang 
+
 
 	def align_with_aruco_frame(self):
 
-		rospy.sleep(3)
-		self.listener1 = tf.TransformListener()
+		rospy.sleep(1)
 
-
-		(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','fridge_pointer',rospy.Time(0))
+		(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','static_fridge',rospy.Time(0))
 		(aruco_roll, aruco_pitch, aruco_yaw) = euler_from_quaternion(aruco_orientation)
 		
-		(robot_translation, robot_orientation) = self.listener1.lookupTransform('map','base_link',rospy.Time(0))
-		(robot_roll, robot_pitch, robot_yaw) = euler_from_quaternion(robot_orientation)
-
-		error_angle = aruco_yaw + math.pi - robot_yaw 
-
-		error_threshold = 0.017*5 # rad, about 1deg
-        	max_attempts = 10
-        	n_attempts = 0
-        	print("Robot Angle: ", robot_yaw, " | Target Angle: ", aruco_yaw+math.pi)
-
-        	while abs(error_angle) > error_threshold and n_attempts < max_attempts:
-        		self.move_to_pose({"rotate_mobile_base": error_angle/5})
-
-            		(robot_translation, robot_orientation) = self.listener1.lookupTransform('map','base_link',rospy.Time(0))
+		orient_reach = False
+		while not rospy.is_shutdown() and not orient_reach:
+			(robot_translation, robot_orientation) = self.listener.lookupTransform('map','base_link',rospy.Time(0))
 			(robot_roll, robot_pitch, robot_yaw) = euler_from_quaternion(robot_orientation)
 
-			error_angle = aruco_yaw + math.pi - robot_yaw 
-			rospy.sleep(0.1)
-			n_attempts += 1
-			print("Robot Angle: ", robot_yaw, " | Target Angle: ", aruco_yaw+math.pi)
+			error_angle = aruco_yaw - math.pi - robot_yaw
+			error_angle = self.check_angle_threshold(error_angle)
+			error_threshold = 0.017*3 # rad, about 1deg
+			print("error_angle:  ", error_angle/math.pi*180)
+			
+			if abs(error_angle) > error_threshold:
+				self.move_to_pose({"rotate_mobile_base": error_angle/3})
+
+			if abs(error_angle) < error_threshold:
+				orient_reach = True        
+
+		    
+        		print("Robot Angle: ", robot_yaw, " | Target Angle: ", aruco_yaw-math.pi)
+
+			rospy.sleep(2)
+
 
         # target_angle = math.pi/2 # this reflects the 90deg rotation between bed and robot X axes
         # xya, time = self.get_robot_floor_pose_xya(floor_frame=alignment_frame)
   
+	def move_aruco_marker(self):
 
+		rospy.sleep(1)
+
+		(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','static_fridge',rospy.Time(0))
+		(aruco_roll, aruco_pitch, aruco_yaw) = euler_from_quaternion(aruco_orientation)
+		print("aruco_pose",aruco_translation)
+		self.move_to_pose({"translate_mobile_base": aruco_translation[0]})
+		rospy.sleep(2)
+		self.move_to_pose({"rotate_mobile_base": -math.pi/2})
+		rospy.sleep(2)
+		self.move_to_pose({"translate_mobile_base": -aruco_translation[1]-0.35})
+		rospy.sleep(2)
+		self.move_to_pose({"rotate_mobile_base": math.pi/2})
+
+		
+
+	def open_the_fridge(self):
+		rospy.sleep(2)
+		self.move_to_pose({'wrist_extension': 0.15})
+		rospy.sleep(2)
+		self.move_to_pose({"translate_mobile_base": 0.17})
+		rospy.sleep(2)
+		self.move_to_pose({"translate_mobile_base": 0.3})
+		rospy.sleep(2)
+		self.move_to_pose({"rotate_mobile_base": -0.436332})
+		rospy.sleep(2)
+		self.move_to_pose({"translate_mobile_base": 0.45})
+		rospy.sleep(2)
+		self.move_to_pose({"rotate_mobile_base": -1.73446})
+			
+		
 
 	def main(self):
 		
@@ -141,7 +182,7 @@ class Arucofind(hm.HelloNode):
 			if self.marker_array is not None:
 				for marker in self.marker_array.markers:
 					if marker.id == 27:
-						(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','fridge_pointer',rospy.Time(0))
+						(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','static_fridge',rospy.Time(0))
 						(aruco_roll, aruco_pitch, aruco_yaw) = euler_from_quaternion(aruco_orientation)
 						pose_found = True
 
@@ -152,58 +193,24 @@ class Arucofind(hm.HelloNode):
 		(robot_roll, robot_pitch, robot_yaw) = euler_from_quaternion(robot_orientation)
 		print(robot_roll/math.pi*180,robot_pitch/math.pi*180,robot_yaw/math.pi*180)
 
-		orient_reach = False
-		while not rospy.is_shutdown() and not orient_reach:
-					
-			(robot_translation, robot_orientation) = self.listener.lookupTransform('map','base_link',rospy.Time(0))
-			(robot_roll, robot_pitch, robot_yaw) = euler_from_quaternion(robot_orientation)
-
-			error_angle = aruco_yaw - math.pi - robot_yaw 
-			error_threshold = 0.017*3 # rad, about 1deg
-			print("error_angle:  ", error_angle/math.pi*180)
-			if abs(error_angle) > error_threshold:
-			        self.move_to_pose({"rotate_mobile_base": error_angle/3})
-
-			if abs(error_angle) < error_threshold:
-				orient_reach = True        
-
-		    
-            		print("Robot Angle: ", robot_yaw, " | Target Angle: ", aruco_yaw-math.pi)
-
-			rospy.sleep(2)
-
-		
+						
+			
+		self.align_with_aruco_frame()
+		self.move_aruco_marker()
+		self.open_the_fridge()
 		#self.scan_for_aruco()
-		while not rospy.is_shutdown() and not pose_found:
-			if self.marker_array is not None:
-				for marker in self.marker_array.markers:
-					if marker.id == 27:
-						(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','fridge_pointer',rospy.Time(0))
-						print("aruco_pose")
-						print(aruco_translation)
-						(robot_translation, robot_orientation) = self.listener.lookupTransform('map','base_link',rospy.Time(0))
-						print("robot_pose")
-						print(robot_translation)
+		# while not rospy.is_shutdown() and not pose_found:
+		# 	if self.marker_array is not None:
+		# 		for marker in self.marker_array.markers:
+		# 			if marker.id == 27:
+		# 				(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','fridge_pointer',rospy.Time(0))
+		# 				print("aruco_pose")
+		# 				print(aruco_translation)
+		# 				(robot_translation, robot_orientation) = self.listener.lookupTransform('map','base_link',rospy.Time(0))
+		# 				print("robot_pose")
+		# 				print(robot_translation)
 
 		
-		
-
-				
-				
-
-
-
-
-class StretchAction(hm.HelloNode):
-	def __init__(self):
-		hm.HelloNode.main(self, 'stretch_action', 'stretch_namespace', wait_for_first_pointcloud=False)
-		self.stretch_gestures = stretch_gestures.StretchGestures(self.move_to_pose)
-
-	def main(self):
-		rospy.sleep(1)
-		self.move_to_pose({'joint_gripper_finger_left': -0.05})
-		rospy.sleep(1)
-		self.stretch_gestures.gripper_circles(3,0.02)
 
 
 
@@ -212,24 +219,6 @@ if __name__ == '__main__':
 		parser = ap.ArgumentParser(description='Aruco test')
 		rospy.init_node('aruco_test')
 		args, unknown = parser.parse_known_args()
-
-		#Finding the coordinates
-		# status=robot_c.get_status()
-
-		# arm_pose = status['arm']['pos']
-		# print("arm_pose:", arm_pose)
-
-		# base_pose = status['base']['x']
-		# print("base pose x:", base_pose)
-
-		# base_pose = status['base']['y']
-		# print("base pose y:", base_pose)
-
-		# base_pose = status['base']['theta']
-		# print("base pose theta:", base_pose)
-
-		# lift_pose = status['lift']['pos']
-		# print("lift pose:", lift_pose)
 
 
 		node1 = Arucofind()
