@@ -34,6 +34,11 @@ class Arucofind(hm.HelloNode):
 		self.marker_array = None
 		self.delta = 0.2
 		self.listener = tf.TransformListener()
+		self.aruco_translation  = None
+		self.aruco_orientation = None
+		self.aruco_yaw=None
+		self.aruco_pitch=None
+		self.aruco_roll=None
 
 	def marker_array_callback(self, marker_array):
 		with self.marker_array_lock:
@@ -69,7 +74,7 @@ class Arucofind(hm.HelloNode):
 				sweeping_clockwise = False
 
 			#Move to new pose
-			if sweeping_clockwise:
+			if sweeping_clockwise
 				head_pan = current_pan-delta_pan
 			else:
 				head_pan = current_pan+delta_pan
@@ -88,6 +93,9 @@ class Arucofind(hm.HelloNode):
 						if marker.id == 27:
 							return
 
+		(self.aruco_translation, self.aruco_orientation) = self.listener.lookupTransform('map','fridge_pointer',rospy.Time(0))
+		(self.aruco_roll, self.aruco_pitch, self.aruco_yaw) = euler_from_quaternion(self.aruco_orientation)
+					
 	def check_angle_threshold(self, angle):
 		if abs(angle)>math.pi:
 			if angle>math.pi:
@@ -104,9 +112,7 @@ class Arucofind(hm.HelloNode):
 
 		rospy.sleep(1)
 
-		(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','static_fridge',rospy.Time(0))
-		(aruco_roll, aruco_pitch, aruco_yaw) = euler_from_quaternion(aruco_orientation)
-		
+
 		orient_reach = False
 		while not rospy.is_shutdown() and not orient_reach:
 			(robot_translation, robot_orientation) = self.listener.lookupTransform('map','base_link',rospy.Time(0))
@@ -122,7 +128,7 @@ class Arucofind(hm.HelloNode):
 
 			if abs(error_angle) < error_threshold:
 				orient_reach = True        
-
+				
 		    
         		print("Robot Angle: ", robot_yaw, " | Target Angle: ", aruco_yaw-math.pi)
 
@@ -131,14 +137,33 @@ class Arucofind(hm.HelloNode):
 
         # target_angle = math.pi/2 # this reflects the 90deg rotation between bed and robot X axes
         # xya, time = self.get_robot_floor_pose_xya(floor_frame=alignment_frame)
-  
+  	def build_transform_message(self, position, orientation):
+
+		pose_ = gm_msg.TransformStamped()
+
+		# Header
+		pose_.header.frame_id = "map"
+		pose_.header.stamp = rospy.Time.now()
+		pose_.child_frame_id = "static_fridge"
+
+		# Pose
+		pose_.transform.translation.x = position[0]
+		pose_.transform.translation.y = position[1]
+		pose_.transform.translation.z = position[2]
+
+		pose_.transform.rotation.x = orientation[0]
+		pose_.transform.rotation.y = orientation[1]
+		pose_.transform.rotation.z = orientation[2]
+		pose_.transform.rotation.w = orientation[3]
+
+		return pose_
+
 	def move_aruco_marker(self):
 
 		rospy.sleep(1)
 
-		(aruco_translation, aruco_orientation) = self.listener.lookupTransform('map','static_fridge',rospy.Time(0))
-		(aruco_roll, aruco_pitch, aruco_yaw) = euler_from_quaternion(aruco_orientation)
-		print("aruco_pose",aruco_translation)
+		self.scan_for_aruco()
+		
 		self.move_to_pose({"translate_mobile_base": aruco_translation[0]})
 		rospy.sleep(2)
 		self.move_to_pose({"rotate_mobile_base": -math.pi/2})
@@ -163,7 +188,7 @@ class Arucofind(hm.HelloNode):
 		rospy.sleep(2)
 		self.move_to_pose({"rotate_mobile_base": -1.73446})
 			
-		
+
 
 	def main(self):
 		

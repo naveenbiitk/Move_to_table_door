@@ -29,7 +29,7 @@
   <include file="$(find stretch_core)/launch/stretch_aruco.launch"></include>
   <!-- -->
 
-  <node name="aruco_pose_broadcaster" pkg="find_fridge" type="aruco_pose_broadcaster.py" output="screen"/>
+  <!--node name="aruco_pose_broadcaster" pkg="find_fridge" type="aruco_pose_broadcaster.py" output="screen"/-->
 
 
   <!-- Launch Node -->
