@@ -23,7 +23,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 #robot_c = stretch_body.robot.Robot()
 #robot_c.startup()
 
-class Arucofind(hm.HelloNode):
+class MoveTable(hm.HelloNode):
 
 	def __init__(self):
 		hm.HelloNode.__init__(self)
@@ -51,7 +51,7 @@ class Arucofind(hm.HelloNode):
 		self.move_to_pose({'joint_lift':0.75, 'joint_wrist_yaw':math.pi })
 		rospy.sleep(2)
 
-	def scan_for_aruco(self):
+	def scan_for_aruco(self, number, pointer_name):
 		#Initial pose
 		initial_head_pan = math.pi/2
 		initial_head_tilt = -0.5
@@ -90,13 +90,13 @@ class Arucofind(hm.HelloNode):
 				if self.marker_array is not None:
 					for marker in self.marker_array.markers:
 						print("Aruco ID:", marker.id)
-						if marker.id == 27:
+						if marker.id == number:
 							print("Done")
 							fridge_aruco_found=True
 							break
 
 		rospy.sleep(1)
-		(self.aruco_translation, self.aruco_orientation) = self.listener.lookupTransform('base_link','fridge_pointer',rospy.Time(0))
+		(self.aruco_translation, self.aruco_orientation) = self.listener.lookupTransform('base_link',pointer_name,rospy.Time(0))
 		print("Aruco translation")
 		print(self.aruco_translation)
 		(self.aruco_roll, self.aruco_pitch, self.aruco_yaw) = euler_from_quaternion(self.aruco_orientation)
@@ -115,12 +115,14 @@ class Arucofind(hm.HelloNode):
 		return final_ang 
 
 
-	def align_with_aruco_frame(self):
+	def align_with_aruco_frame(self, number, pointer_name):
 
 		rospy.sleep(1)
 
+		self.scan_for_aruco(number, pointer_name)
 
-		
+		print(self.aruco_translation[0],self.aruco_translation[1])
+
 		#self.move_to_pose({"rotate_mobile_base": self.aruco_yaw+math.pi})
 		
 		(robot_translation, robot_orientation) = self.listener.lookupTransform('map','base_link',rospy.Time(0))
@@ -170,29 +172,11 @@ class Arucofind(hm.HelloNode):
 
 		return pose_
 
-	# def move_aruco_marker(self):
+	def move_to_table_aruco(self,number, pointer_name):
 
-	# 	rospy.sleep(1)
-
-
-	# 	self.scan_for_aruco()
-
-	# 	print(self.aruco_translation[0],self.aruco_translation[1])
-
-	# 	self.move_to_pose({"translate_mobile_base": self.aruco_translation[0]})
-	# 	rospy.sleep(2)
-	# 	self.move_to_pose({"rotate_mobile_base": -math.pi/2})
-	# 	rospy.sleep(2)
-	# 	self.move_to_pose({"translate_mobile_base": -self.aruco_translation[1]-0.35})
-	# 	rospy.sleep(2)
-	# 	self.move_to_pose({"rotate_mobile_base": math.pi/2})
-
-	def move_aruco_marker(self):
-
-		print('hello')
 		rospy.sleep(1)
 
-		self.scan_for_aruco()
+		self.scan_for_aruco(number, pointer_name)
 
 		print(self.aruco_translation[0],self.aruco_translation[1])
 
@@ -200,51 +184,88 @@ class Arucofind(hm.HelloNode):
 		rospy.sleep(1)
 		self.move_to_pose({"rotate_mobile_base": -math.pi/2})
 		rospy.sleep(1)
-		self.move_to_pose({"translate_mobile_base": -self.aruco_translation[1]-0.4})
+		self.move_to_pose({"translate_mobile_base": -self.aruco_translation[1]-0.3})
 		rospy.sleep(1)
 		self.move_to_pose({"rotate_mobile_base": math.pi/2})
 		rospy.sleep(1)
-		self.move_to_pose({"joint_wrist_yaw": math.pi})
-		
 
-	def open_the_fridge(self):
-		rospy.sleep(2)
+	def grab_bottle(self):
+
+
+		self.move_to_pose({'joint_lift':0.93})
+		rospy.sleep(1)
+
+		self.move_to_pose({'joint_wrist_yaw':0})
+		rospy.sleep(1)
+
+		self.move_to_pose({'gripper_aperture': 0.125})
+		rospy.sleep(1)
+
 		self.move_to_pose({'wrist_extension': 0.13})
-		rospy.sleep(2)
-		self.move_to_pose({"translate_mobile_base": 0.17})
-		rospy.sleep(2)
-		self.move_to_pose({"translate_mobile_base": 0.15})
-		rospy.sleep(2)
-		self.move_to_pose({"rotate_mobile_base": -0.436332})
-		rospy.sleep(2)
-		self.move_to_pose({"translate_mobile_base": 0.45})
-		rospy.sleep(2)
-		self.move_to_pose({"rotate_mobile_base": -1.13446})
-		rospy.sleep(2)
-		self.move_to_pose({'joint_lift':0.6, 'joint_wrist_yaw':math.pi })
-		rospy.sleep(2)
-		self.move_to_pose({"translate_mobile_base": 0.35})
-		rospy.sleep(2)
-		#self.move_to_pose({"rotate_mobile_base": -1.5708})
-			
+		rospy.sleep(1)
+
+		self.move_to_pose({'gripper_aperture':0})
+		rospy.sleep(1)
+
+		self.move_to_pose({'joint_lift': 0.98})
+		rospy.sleep(1)
+
+		self.move_to_pose({'joint_wrist_yaw':math.pi})
+		rospy.sleep(1)
+
+		self.move_to_pose({'wrist_extension': 0})
+		rospy.sleep(1)
+
+
+	def move_to_door_aruco(self, number, pointer_name):
+
+		rospy.sleep(1)
+
+		self.scan_for_aruco(number, pointer_name)
+
+		print(self.aruco_translation[0],self.aruco_translation[1])
+
+		self.move_to_pose({"translate_mobile_base": self.aruco_translation[0]})
+		rospy.sleep(1)
+		self.move_to_pose({"rotate_mobile_base": -math.pi/2})
+		rospy.sleep(1)
+		self.move_to_pose({"translate_mobile_base": -self.aruco_translation[1]-0.3})
+		rospy.sleep(1)
+		self.move_to_pose({"rotate_mobile_base": math.pi/2})
+		rospy.sleep(1)
+
+
+	# def open_the_fridge(self):
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({'wrist_extension': 0.13})
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({"translate_mobile_base": 0.17})
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({"translate_mobile_base": 0.15})
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({"rotate_mobile_base": -0.436332})
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({"translate_mobile_base": 0.45})
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({"rotate_mobile_base": -1.13446})
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({'joint_lift':0.6, 'joint_wrist_yaw':math.pi })
+	# 	rospy.sleep(2)
+	# 	self.move_to_pose({"translate_mobile_base": 0.35})
+	# 	rospy.sleep(2)
+	# 	#self.move_to_pose({"rotate_mobile_base": -1.5708})
 
 
 	def main(self):
 		
-
-		hm.HelloNode.main(self, 'aruco_test', 'aruco_test', wait_for_first_pointcloud=False)
-		print('hi1')
+		hm.HelloNode.main(self, 'move_to_table', 'move_to_table', wait_for_first_pointcloud=False)
 		rate = rospy.Rate(self.rate)
-		print('hi2')
 		print(rospy.get_param('/aruco_marker_info'))
 		rospy.Subscriber('/aruco/marker_array', MarkerArray, self.marker_array_callback)
-		print('hi3')
 		self.initial_configuration()
-		print('hi4')
-		self.scan_for_aruco()
-
+		# self.scan_for_aruco(number=27)
 		rospy.sleep(1)
-		# self.align_with_aruco_frame()
+		# self.align_with_aruco_frame(number=27)
 		# pose_found = False
 		# while not rospy.is_shutdown() and not pose_found:
 		# 	if self.marker_array is not None:
@@ -262,9 +283,11 @@ class Arucofind(hm.HelloNode):
 		print(robot_roll/math.pi*180,robot_pitch/math.pi*180,robot_yaw/math.pi*180)
 
 						
-			
-		#self.align_with_aruco_frame()
-		self.move_aruco_marker()
+		self.align_with_aruco_frame(27, 'fridge_pointer')
+		self.move_to_table_aruco(27, 'fridge_pointer')
+		self.grab_bottle()
+		self.align_with_aruco_frame(28,'door_1_pointer')
+		self.move_to_door_aruco(28,'door_1_pointer')
 		# self.open_the_fridge()
 		#self.scan_for_aruco()
 		# while not rospy.is_shutdown() and not pose_found:
@@ -278,22 +301,18 @@ class Arucofind(hm.HelloNode):
 		# 				print("robot_pose")
 		# 				print(robot_translation)
 
-		
-
 
 
 if __name__ == '__main__':
 	try:
 		parser = ap.ArgumentParser(description='Aruco test')
-		rospy.init_node('aruco_test')
+		rospy.init_node('move_to_table')
 		args, unknown = parser.parse_known_args()
 
-		print('hi5')
-		node1 = Arucofind()
+
+		node1 = MoveTable()
 		#node1 = StretchAction()
-		print('hi6')
 		node1.main()
-		print('hi7')
 
 	except KeyboardInterrupt:
 		rospy.loginfo('interrupt received, so shutting down')

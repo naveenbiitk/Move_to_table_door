@@ -55,40 +55,80 @@ class go_fridge(hm.HelloNode):
 		#self.initial_configuration()
 
 		
+		#robot_c.arm.move_by(-0.2, 2)
+		#rospy.sleep(5)
+
+		#robot_c.arm.move_by(0.25, 4)
+		#robot_c.push_command()
 	
 		
 		#open fridge half way
-		robot_c.base.translate_by(0.3)
-		robot_c.push_command()
+		#robot_c.base.translate_by(0.3)
+		# robot_c.push_command()
 
-		rospy.sleep(7)
+		# rospy.sleep(7)
 
-		robot_c.base.rotate_by(-0.436332)
-		robot_c.push_command()
+		# robot_c.base.rotate_by(-0.436332)
+		# robot_c.push_command()
 
-		rospy.sleep(5)
+		# rospy.sleep(5)
 
-		robot_c.base.translate_by(0.50)
-		robot_c.push_command()
+		# robot_c.base.translate_by(0.50)
+		# robot_c.push_command()
 
-		rospy.sleep(7)
+		# rospy.sleep(7)
 
-		#turn so arm is parallel with front of the fridge
-		robot_c.base.rotate_by(-1.13446)
-		robot_c.push_command()
+		# #turn so arm is parallel with front of the fridge
+		# robot_c.base.rotate_by(-1.13446)
+		# robot_c.push_command()
 
-		rospy.sleep(5)
+		# rospy.sleep(5)
 
-		#push the door fully open
-		#robot_c.base.translate_by(0.50)
-		#robot_c.push_command()
+		# #push the door fully open
+		# #robot_c.base.translate_by(0.50)
+		# #robot_c.push_command()
 
-		rospy.sleep(7)
+		# rospy.sleep(7)
 
 		#rotate so front of base is facing front of fridge 
 		#robot_c.base.rotate_by(-1.5708)
 		#robot_c.push_command()
 
+	def grab_bottle(self):
+		#hm.HelloNode.main(self, 'stretch_test', 'stretch_test', wait_for_first_pointcloud=False)
+		#rospy.sleep(2)
+		#self.move_to_pose({"joint_wrist_yaw":math.pi})
+		#rospy.sleep(2)
+		#self.move_to_pose({'wrist_extension': 0.01})
+		robot_c.lift.move_to(0.93,1,1)
+		robot_c.push_command()
+		rospy.sleep(3)
+		robot_c.end_of_arm.move_to('wrist_yaw',0,3,5)
+		robot_c.push_command()
+		rospy.sleep(3)
+		robot_c.end_of_arm.move_to('stretch_gripper',150,3,5)
+		robot_c.push_command()
+		rospy.sleep(3)
+		robot_c.arm.move_to(1,0.5,0.5)
+		robot_c.push_command()
+		rospy.sleep(5)
+		robot_c.end_of_arm.move_to('stretch_gripper',0,3,5)
+		robot_c.push_command()
+		rospy.sleep(3)
+		robot_c.lift.move_by(0.05,1,1)
+		robot_c.push_command()
+		rospy.sleep(3)
+		robot_c.end_of_arm.move_to('wrist_yaw',math.pi,3,5)
+		robot_c.push_command()
+		rospy.sleep(3)
+		robot_c.arm.move_to(0,3,3)
+		robot_c.push_command()
+		rospy.sleep(2)
+		robot_c.lift.move_to(0.5,1,1)
+		robot_c.push_command()
+		rospy.sleep(3)
+		#robot_c.arm.move_to(1,1,3)
+		#robot_c.push_command()
 
 
 
@@ -107,7 +147,8 @@ if __name__ == '__main__':
 		parser = ap.ArgumentParser(description='Simple test of Stretch')
 		rospy.init_node('stretch_test')
 		args, unknown = parser.parse_known_args()
-		go_fridge()
+		x = go_fridge()
+		x.grab_bottle()
 		#Finding the coordinates
 		status=robot_c.get_status()
 

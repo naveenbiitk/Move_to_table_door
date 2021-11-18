@@ -31,9 +31,8 @@
 
   <!--node name="aruco_pose_broadcaster" pkg="find_fridge" type="aruco_pose_broadcaster.py" output="screen"/-->
 
-  <node name="simple_test" pkg="find_fridge" type="simple_test.py" output="screen"/>
   <!-- Launch Node -->
-  <node name="aruco_test" pkg="find_fridge" type="aruco_test.py" output="screen"/>
+  <node name="move_to_table" pkg="find_fridge" type="move_to_table.py" output="screen"/>
   <!-- -->
 
   <!-- VISUALIZE -->
